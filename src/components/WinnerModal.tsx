@@ -110,7 +110,7 @@ export function WinnerModal({ winners, isOpen, onClose }: WinnerModalProps) {
                 <Sparkles className="h-4 w-4 text-primary absolute -top-1 -right-1 animate-ping" />
               </div>
               <h2 className="text-3xl font-extrabold bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent">
-                 당첨자 발표 
+                 Winners!
               </h2>
             </div>
             <Button
