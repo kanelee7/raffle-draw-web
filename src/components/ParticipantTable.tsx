@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Upload } from "lucide-react";
@@ -15,6 +16,47 @@ interface ParticipantTableProps {
 }
 
 export function ParticipantTable({ participants, onParticipantsChange }: ParticipantTableProps) {
+  const [weightDrafts, setWeightDrafts] = React.useState<Record<string, string>>(() =>
+    Object.fromEntries(participants.map((p) => [p.id, p.weight.toString()]))
+  );
+
+  React.useEffect(() => {
+    setWeightDrafts((prev) => {
+      const next: Record<string, string> = {};
+      let mutated = false;
+
+      for (const participant of participants) {
+        const canonical = participant.weight.toString();
+        const draft = prev[participant.id];
+
+        if (draft === undefined) {
+          next[participant.id] = canonical;
+          mutated = true;
+          continue;
+        }
+
+        if (draft === "") {
+          next[participant.id] = draft;
+          continue;
+        }
+
+        if (draft !== canonical) {
+          next[participant.id] = canonical;
+          mutated = true;
+          continue;
+        }
+
+        next[participant.id] = draft;
+      }
+
+      if (Object.keys(prev).length !== participants.length) {
+        mutated = true;
+      }
+
+      return mutated ? next : prev;
+    });
+  }, [participants]);
+
   const addParticipant = () => {
     onParticipantsChange([
       ...participants,
@@ -32,6 +74,40 @@ export function ParticipantTable({ participants, onParticipantsChange }: Partici
         p.id === id ? { ...p, [field]: value } : p
       )
     );
+  };
+
+  const handleWeightChange = (id: string, value: string) => {
+    if (!/^\d*$/.test(value)) {
+      return;
+    }
+
+    setWeightDrafts((prev) => ({ ...prev, [id]: value }));
+
+    if (value === "") {
+      return;
+    }
+
+    const parsed = parseInt(value, 10);
+    const nextWeight = Math.max(1, parsed || 1);
+    updateParticipant(id, "weight", nextWeight);
+  };
+
+  const handleWeightBlur = (id: string) => {
+    setWeightDrafts((prev) => {
+      const raw = prev[id] ?? "";
+      const parsed = parseInt(raw, 10);
+      const nextWeight = Math.max(1, parsed || 1);
+      const nextDraft = nextWeight.toString();
+
+      if (raw !== nextDraft) {
+        const updated = { ...prev, [id]: nextDraft };
+        updateParticipant(id, "weight", nextWeight);
+        return updated;
+      }
+
+      updateParticipant(id, "weight", nextWeight);
+      return prev;
+    });
   };
 
   const handlePaste = async () => {
@@ -116,8 +192,9 @@ export function ParticipantTable({ participants, onParticipantsChange }: Partici
                       <Input
                         type="number"
                         min="1"
-                        value={participant.weight}
-                        onChange={(e) => updateParticipant(participant.id, "weight", Math.max(1, parseInt(e.target.value) || 1))}
+                        value={weightDrafts[participant.id] ?? participant.weight.toString()}
+                        onChange={(e) => handleWeightChange(participant.id, e.target.value)}
+                        onBlur={() => handleWeightBlur(participant.id)}
                         className="border-0 focus-visible:ring-0 bg-transparent w-24"
                       />
                     </td>
